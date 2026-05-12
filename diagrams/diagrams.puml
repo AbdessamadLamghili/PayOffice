@@ -1,0 +1,174 @@
+@startuml ClassDiagram
+title PayOffice — Diagramme de Classes
+
+package model {
+    class Etudiant {
+        - id : int
+        - nom : String
+        - prenom : String
+        - classe : String
+        - fraisInscription : double
+        - paiements : List<Paiement>
+        --
+        + getTotalPaye() : double
+        + getMontantRestant() : double
+        + isFullyPaid() : boolean
+        + addPaiement(Paiement) : void
+        + getNomComplet() : String
+    }
+
+    class Paiement {
+        - id : int
+        - etudiantId : int
+        - montant : double
+        - datePaiement : LocalDateTime
+        --
+        + getDateFormatee() : String
+    }
+
+    class Recu {
+        - numero : int
+        - nomEtudiant : String
+        - classeEtudiant : String
+        - montantPaye : double
+        - montantRestant : double
+        - totalFrais : double
+        - dateEmission : LocalDateTime
+        --
+        + genererTexte() : String
+        + getDateFormatee() : String
+    }
+}
+
+package service {
+    class ImportService {
+        + chargerDepuisCSV(filePath: String) : List<Etudiant>
+        + chargerDepuisRessource(path: String) : List<Etudiant>
+        - parseEtudiant(ligne: String) : Etudiant
+    }
+
+    class PaiementService {
+        + enregistrerPaiement(etudiant, montant) : Recu
+        + getPaiementsEtudiant(etudiant) : List<Paiement>
+        + exporterRecu(recu: Recu) : String
+        + calculerTotalPaye(etudiant) : double
+        + calculerSoldeRestant(etudiant) : double
+    }
+}
+
+package ui {
+    class Main {
+        + start(stage: Stage) : void
+        + main(args: String[]) : void
+    }
+
+    class MainController {
+        - importService : ImportService
+        - paiementService : PaiementService
+        - listeEtudiants : ObservableList<Etudiant>
+        - listePaiements : ObservableList<Paiement>
+        - etudiantSelectionne : Etudiant
+        - dernierRecu : Recu
+        --
+        + initialize() : void
+        - handleImporterCSV() : void
+        - handlePayer() : void
+        - handleExporterRecu() : void
+        - mettreAJourInfosEtudiant(e) : void
+        - mettreAJourHistoriquePaiements(e) : void
+    }
+}
+
+' Relationships
+Etudiant "1" *-- "0..*" Paiement : contient >
+Recu ..> Etudiant : utilise
+Recu ..> Paiement : créé depuis
+
+ImportService ..> Etudiant : crée
+PaiementService ..> Paiement : crée
+PaiementService ..> Recu : génère
+PaiementService ..> Etudiant : modifie
+
+MainController --> ImportService : utilise
+MainController --> PaiementService : utilise
+MainController --> Etudiant : sélectionne
+MainController --> Recu : affiche
+
+@enduml
+
+' ════════════════════════════════════════════════════════════
+
+@startuml UseCaseDiagram
+title PayOffice — Diagramme des Cas d'Utilisation
+
+left to right direction
+
+actor "Comptable / Admin" as Admin
+
+rectangle PayOffice {
+    usecase "Importer liste étudiants (CSV)" as UC1
+    usecase "Consulter liste étudiants" as UC2
+    usecase "Sélectionner un étudiant" as UC3
+    usecase "Enregistrer un paiement" as UC4
+    usecase "Consulter l'historique des paiements" as UC5
+    usecase "Consulter le solde restant" as UC6
+    usecase "Générer un reçu" as UC7
+    usecase "Exporter reçu en TXT" as UC8
+}
+
+Admin --> UC1
+Admin --> UC2
+Admin --> UC3
+Admin --> UC4
+Admin --> UC5
+Admin --> UC6
+
+UC4 .> UC7 : <<include>>
+UC7 .> UC8 : <<extend>>
+UC4 .> UC6 : <<include>>
+
+@enduml
+
+' ════════════════════════════════════════════════════════════
+
+@startuml SequenceDiagram
+title PayOffice — Diagramme de Séquence: Enregistrement d'un Paiement
+
+actor Admin
+participant MainController
+participant PaiementService
+participant Etudiant
+participant Paiement
+participant Recu
+
+Admin -> MainController : Sélectionne un étudiant
+MainController -> Etudiant : getTotalPaye(), getMontantRestant()
+MainController --> Admin : Affiche infos étudiant
+
+Admin -> MainController : Saisit montant + clique "Valider"
+MainController -> PaiementService : enregistrerPaiement(etudiant, montant)
+
+PaiementService -> PaiementService : Valider montant (> 0, ≤ solde restant)
+PaiementService -> Paiement : new Paiement(etudiantId, montant)
+Paiement --> PaiementService : paiement
+
+PaiementService -> Etudiant : addPaiement(paiement)
+PaiementService -> Recu : new Recu(etudiant, paiement)
+Recu --> PaiementService : recu
+
+PaiementService --> MainController : recu
+
+MainController -> Recu : genererTexte()
+Recu --> MainController : texteRecu
+
+MainController --> Admin : Affiche reçu + met à jour soldes
+
+opt Export demandé
+    Admin -> MainController : Clique "Exporter en TXT"
+    MainController -> PaiementService : exporterRecu(recu)
+    PaiementService -> PaiementService : Écriture fichier .txt
+    PaiementService --> MainController : cheminFichier
+    MainController --> Admin : Confirmation d'export
+end
+
+@enduml
