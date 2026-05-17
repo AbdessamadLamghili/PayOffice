@@ -27,7 +27,8 @@
             <artifactId>javafx-controls</artifactId>
             <version>${javafx.version}</version>
         </dependency>
-        <!-- JavaFX FXML support -->
+
+        <!-- JavaFX FXML -->
         <dependency>
             <groupId>org.openjfx</groupId>
             <artifactId>javafx-fxml</artifactId>
@@ -36,8 +37,11 @@
     </dependencies>
 
     <build>
+        <!-- Indique à Maven que les fichiers Java sont dans src -->
+        <sourceDirectory>src</sourceDirectory>
+
+        <!-- Inclure les ressources -->
         <resources>
-            <!-- Include CSV data files and FXML in the build -->
             <resource>
                 <directory>src</directory>
                 <includes>
@@ -49,7 +53,7 @@
         </resources>
 
         <plugins>
-            <!-- JavaFX Maven Plugin for running the app -->
+            <!-- Plugin JavaFX -->
             <plugin>
                 <groupId>org.openjfx</groupId>
                 <artifactId>javafx-maven-plugin</artifactId>
@@ -59,7 +63,7 @@
                 </configuration>
             </plugin>
 
-            <!-- Compiler plugin -->
+            <!-- Plugin de compilation -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
@@ -71,4 +75,5 @@
             </plugin>
         </plugins>
     </build>
+
 </project>
